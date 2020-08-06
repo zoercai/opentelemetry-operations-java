@@ -1,5 +1,7 @@
 subprojects {
     apply plugin: 'java-library'
+    apply plugin: 'maven'
+    apply plugin: 'signing'
 
     group = "com.google.cloud.opentelemetry.operations"
     version = "0.0.0-SNAPSHOT" // CURRENT_VERSION
@@ -19,7 +21,7 @@ subprojects {
         googleCloudVersion = '1.0.2'
         mockitoVersion = '2.+'
         openTelemetryVersion = '0.6.0'
-        junitVersion = '4.13';
+        junitVersion = '4.13'
 
         libraries = [
                 auto_value_annotations: "com.google.auto.value:auto-value-annotations:${autoValueVersion}",
@@ -34,5 +36,173 @@ subprojects {
                 mockito:"org.mockito:mockito-core:${mockitoVersion}",
 
         ]
+    }
+
+    tasks.withType(JavaCompile) {
+        it.options.compilerArgs += [
+                "-Xlint:all",
+                // We suppress the "try" warning because it disallows managing an auto-closeable with
+                // try-with-resources without referencing the auto-closeable within the try block.
+                "-Xlint:-try",
+                // We suppress the "processing" warning as suggested in
+                // https://groups.google.com/forum/#!topic/bazel-discuss/_R3A9TJSoPM
+                "-Xlint:-processing",
+                // We suppress the "options" warning because it prevents compilation on modern JDKs
+                "-Xlint:-options",
+        ]
+        it.options.encoding = "UTF-8"
+        it.options.compilerArgs += ["-Werror"]
+    }
+
+    compileTestJava {
+        // serialVersionUID is basically guaranteed to be useless in tests
+        options.compilerArgs += ["-Xlint:-serial"]
+        sourceCompatibility = sourceCompatibility
+        targetCompatibility = targetCompatibility
+    }
+
+    jar.manifest {
+        attributes('Implementation-Title': name,
+                'Implementation-Version': version,
+                'Built-By': System.getProperty('user.name'),
+                'Built-JDK': System.getProperty('java.version'),
+                'Source-Compatibility': sourceCompatibility,
+                'Target-Compatibility': targetCompatibility)
+    }
+
+    javadoc.options {
+        source = "8"
+        encoding = "UTF-8"
+        links 'https://docs.oracle.com/javase/8/docs/api/'
+    }
+
+    signing {
+        required false
+        sign configurations.archives
+    }
+
+    task javadocJar(type: Jar) {
+        archiveClassifier = 'javadoc'
+        from javadoc
+    }
+
+    task sourcesJar(type: Jar) {
+        archiveClassifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    artifacts {
+        archives javadocJar, sourcesJar
+    }
+
+    plugins.withId("maven-publish") {
+        // Always include the artifactory/bintray plugins to do the deployment.
+        pluginManager.apply "com.jfrog.artifactory"
+        pluginManager.apply "com.jfrog.bintray"
+
+        github_repo = 'GoogleCloudPlatform/opentelemetry-operations-java'
+
+        publishing {
+            publications {
+                mavenPublication(MavenPublication) {
+                    version version
+                    groupId group
+
+                    from components.java
+                    artifact sourcesJar
+                    artifact javadocJar
+
+                    versionMapping {
+                        allVariants {
+                            fromResolutionResult()
+                        }
+                    }
+
+                    pom {
+                        name = 'OpenTelemetry Operations Java'
+                        packaging = 'jar'
+                        url = 'https://github.com/${github_repo}'
+
+                        licenses {
+                            license {
+                                name = 'The Apache License, Version 2.0'
+                                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id = 'opentelemetry'
+                                name = 'OpenTelemetry Gitter'
+                                url = 'https://gitter.im/open-telemetry/community'
+                            }
+                        }
+
+                        scm {
+                            connection = 'scm:git:git@github.com:${github_repo}.git'
+                            developerConnection = 'scm:git:git@github.com:${github_repo}.git'
+                            url = 'git@github.com:${github_repo}.git'
+                        }
+
+                        afterEvaluate {
+                            // description is not available until evaluated.
+                            description = project.description
+                        }
+                    }
+                }
+            }
+        }
+
+        // Snapshot publishing.
+        artifactory {
+            contextUrl = 'https://oss.jfrog.org'
+            publish {
+                repository {
+                    repoKey = 'oss-snapshot-local'
+                    username = System.getenv("BINTRAY_USER")
+                    password = System.getenv("BINTRAY_KEY")
+                }
+                defaults {
+                    publications('mavenPublication')
+                    publishArtifacts = true
+                    publishPom = true
+                }
+            }
+            resolve {
+                repoKey = 'libs-release'
+            }
+        }
+
+        // Release artifacts publishing.
+        bintray {
+            user = System.getenv("BINTRAY_USER")
+            key = System.getenv("BINTRAY_KEY")
+            publications = ['mavenPublication']
+
+            publish = true
+
+            pkg {
+                repo = 'maven'
+                name = 'opentelemetry-operations-java'
+                licenses = ['Apache-2.0']
+                vcsUrl = 'https://github.com/${github_repo}.git'
+                userOrg = 'GoogleCloudPlatform'
+
+                githubRepo = '${github_repo}'
+
+                version {
+                    name = project.version
+
+                    gpg {
+                        sign = true
+                    }
+
+                    mavenCentralSync {
+                        user = System.getenv("SONATYPE_USER")
+                        password = System.getenv("SONATYPE_KEY")
+                    }
+                }
+            }
+        }
     }
 }
