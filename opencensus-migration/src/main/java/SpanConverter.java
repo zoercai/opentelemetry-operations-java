@@ -4,12 +4,16 @@ import io.opencensus.trace.Annotation;
 import io.opencensus.trace.AttributeValue;
 import io.opencensus.trace.EndSpanOptions;
 import io.opencensus.trace.Link;
+import io.opencensus.trace.MessageEvent;
 import io.opencensus.trace.Span;
 import io.opencensus.trace.SpanContext;
 import io.opencensus.trace.TraceOptions;
 import io.opencensus.trace.Tracestate;
 import io.opencensus.trace.export.SpanData;
+import io.opencensus.trace.export.SpanData.TimedEvent;
 import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.common.AttributeKey;
+import io.opentelemetry.common.Attributes;
 import io.opentelemetry.trace.Span.Builder;
 import io.opentelemetry.trace.SpanId;
 import io.opentelemetry.trace.TraceFlags;
@@ -98,28 +102,81 @@ public class SpanConverter {
     return new FakeSpan(spanContext);
   }
 
-  private static Function<Double, Void> setDoubleAttribute(Builder builder, Entry<String, AttributeValue> attribute) {
+  static void mapAndAddTimedEvent(io.opentelemetry.trace.Span span, TimedEvent<MessageEvent> event) {
+    span.addEvent(String.valueOf(event.getEvent().getMessageId()), Attributes.of(
+        AttributeKey.stringKey("message.event.type"), event.getEvent().getType().toString(),
+        AttributeKey.longKey("message.event.size.uncompressed"), event.getEvent().getUncompressedMessageSize(),
+        AttributeKey.longKey("message.event.size.compressed"), event.getEvent().getCompressedMessageSize()
+    ), event.getTimestamp().getSeconds() * NANOS_PER_SECOND + event.getTimestamp().getNanos());
+  }
+
+  static void mapAndAddAnnotation(io.opentelemetry.trace.Span span, TimedEvent<Annotation> annotation) {
+    Attributes.Builder attributesBuilder = Attributes.newBuilder();
+    annotation.getEvent().getAttributes().forEach(
+        (s, attributeValue) -> attributeValue.match(
+            setStringAttribute(attributesBuilder, s),
+            setBooleanAttribute(attributesBuilder, s),
+            setLongAttribute(attributesBuilder, s),
+            setDoubleAttribute(attributesBuilder, s),
+            arg -> null
+        ));
+    span.addEvent(
+        annotation.getEvent().getDescription(),
+        attributesBuilder.build(),
+        annotation.getTimestamp().getSeconds() * NANOS_PER_SECOND
+            + annotation.getTimestamp().getNanos());
+  }
+
+  static Function<String, Void> setStringAttribute(Attributes.Builder builder, String key) {
+    return arg -> {
+      builder.setAttribute(key, arg);
+      return null;
+    };
+  }
+
+  static Function<Boolean, Void> setBooleanAttribute(Attributes.Builder builder, String key) {
+    return arg -> {
+      builder.setAttribute(key, arg);
+      return null;
+    };
+  }
+
+  static Function<Long, Void> setLongAttribute(Attributes.Builder builder, String key) {
+    return arg -> {
+      builder.setAttribute(key, arg);
+      return null;
+    };
+  }
+
+  static Function<Double, Void> setDoubleAttribute(Attributes.Builder builder, String key) {
+    return arg -> {
+      builder.setAttribute(key, arg);
+      return null;
+    };
+  }
+
+  static Function<Double, Void> setDoubleAttribute(Builder builder, Entry<String, AttributeValue> attribute) {
     return arg -> {
       builder.setAttribute(attribute.getKey(), arg);
       return null;
     };
   }
 
-  private static Function<Long, Void> setLongAttribute(Builder builder, Entry<String, AttributeValue> attribute) {
+  static Function<Long, Void> setLongAttribute(Builder builder, Entry<String, AttributeValue> attribute) {
     return arg -> {
       builder.setAttribute(attribute.getKey(), arg);
       return null;
     };
   }
 
-  private static Function<Boolean, Void> setBooleanAttribute(Builder builder, Entry<String, AttributeValue> attribute) {
+  static Function<Boolean, Void> setBooleanAttribute(Builder builder, Entry<String, AttributeValue> attribute) {
     return arg -> {
       builder.setAttribute(attribute.getKey(), arg);
       return null;
     };
   }
 
-  private static Function<String, Void> setStringAttribute(Builder builder, Entry<String, AttributeValue> attribute) {
+  static Function<String, Void> setStringAttribute(Builder builder, Entry<String, AttributeValue> attribute) {
     return arg -> {
       builder.setAttribute(attribute.getKey(), arg);
       return null;
