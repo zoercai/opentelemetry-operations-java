@@ -4,6 +4,7 @@ include ":exporter-trace"
 include ":examples-trace"
 include ":exporter-metrics"
 include ":exporter-auto"
+include 'opencensus-migration'
 
 project(':exporter-trace').projectDir =
         "$rootDir/exporters/trace" as File
@@ -16,3 +17,6 @@ project(':exporter-metrics').projectDir =
 
 project(':exporter-auto').projectDir =
         "$rootDir/exporters/auto" as File
+
+project(':opencensus-migration').projectDir =
+        "$rootDir/opencensus-migration" as File

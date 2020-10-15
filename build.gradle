@@ -25,6 +25,7 @@ subprojects {
         cloudMonitoringVersion = '2.0.1'
         openTelemetryVersion = '0.9.1'
         openTelemetryInstrumentationVersion = '0.8.0'
+        openCensusVersion = '0.27.1'
         junitVersion = '4.13'
         mockitoVersion = '3.5.10'
         opentelemetryOperationsVersion = "0.7.1"  // CURRENT_RELEASE_VERSION
@@ -40,6 +41,8 @@ subprojects {
                 google_cloud_monitoring      : "com.google.cloud:google-cloud-monitoring:${cloudMonitoringVersion}",
                 google_cloud_monitoring_grpc : "com.google.cloud:grpc-google-cloud-monitoring-v3:${cloudMonitoringVersion}",
                 slf4j                        : "org.slf4j:slf4j-api:${slf4jVersion}",
+                opencensus_api               : "io.opencensus:opencensus-api:${openCensusVersion}",
+                opencensus_impl              : "io.opencensus:opencensus-impl:${openCensusVersion}",
                 opentelemetry_api            : "io.opentelemetry:opentelemetry-api:${openTelemetryVersion}",
                 opentelemetry_sdk            : "io.opentelemetry:opentelemetry-sdk:${openTelemetryVersion}",
                 opentelemetry_auto           : "io.opentelemetry.instrumentation.auto:opentelemetry-javaagent-tooling:${openTelemetryInstrumentationVersion}",
@@ -82,7 +85,7 @@ subprojects {
 
     uploadArchives {
         onlyIf {
-            name in ['exporter-trace']
+            name in ['exporter-trace', 'exporter-metrics', 'opencensus-migration']
         }
         repositories {
             mavenDeployer {

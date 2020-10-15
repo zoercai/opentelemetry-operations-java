@@ -1,0 +1,8 @@
+description = 'OpenCensus to OpenTelemetry Migrator'
+
+dependencies {
+    api(libraries.opencensus_api)
+    api(libraries.opencensus_impl)
+    api(libraries.opentelemetry_api)
+    testImplementation(testLibraries.junit)
+}
