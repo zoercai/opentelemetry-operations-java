@@ -7,7 +7,7 @@ import io.opentelemetry.trace.Span;
 
 public class OpenTelemetryStartEndHandler implements StartEndHandler {
 
-  private static final double NANOS_PER_SECOND = 1e9;
+  private static final long NANOS_PER_SECOND = (long) 1e9;
 
   private final SpanCache spanCache;
 
@@ -28,9 +28,8 @@ public class OpenTelemetryStartEndHandler implements StartEndHandler {
     for (TimedEvent<Annotation> annotation : spanData.getAnnotations().getEvents()) {
       span.addEvent(
           annotation.getEvent().getDescription(),
-          (long)
-              (annotation.getTimestamp().getSeconds() * NANOS_PER_SECOND
-                  + annotation.getTimestamp().getNanos()));
+          annotation.getTimestamp().getSeconds() * NANOS_PER_SECOND
+              + annotation.getTimestamp().getNanos());
     }
     span.end();
   }
