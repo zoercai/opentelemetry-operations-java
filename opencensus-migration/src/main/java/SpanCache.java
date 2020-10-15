@@ -1,12 +1,12 @@
 import io.opencensus.implcore.trace.RecordEventsSpanImpl;
 import io.opencensus.trace.Span;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 
 public class SpanCache {
   private static SpanCache spanCache;
-  private Map<Span, io.opentelemetry.trace.Span> ocToOt = new LinkedHashMap<>();
-  private Map<io.opentelemetry.trace.Span, Span> otToOc = new LinkedHashMap<>();
+  private Map<Span, io.opentelemetry.trace.Span> ocToOt = new HashMap<>();
+  private Map<io.opentelemetry.trace.Span, Span> otToOc = new HashMap<>();
 
   private SpanCache() {}
 
