@@ -12,7 +12,7 @@ import io.opencensus.trace.config.TraceConfig;
 import io.opencensus.trace.export.ExportComponent;
 import io.opencensus.trace.propagation.PropagationComponent;
 
-/** Java 7 and 8 implementation of the {@link TraceComponent} for OpenTelemetry migration. */
+/** Java 8 implementation of the {@link TraceComponent} for OpenTelemetry migration. */
 public final class OpenTelemetryTraceComponentImpl extends TraceComponent {
   private final PropagationComponent propagationComponent = new PropagationComponentImpl();
   private final ExportComponent noopExportComponent = ExportComponent.newNoopExportComponent();
@@ -22,7 +22,7 @@ public final class OpenTelemetryTraceComponentImpl extends TraceComponent {
 
   /** Public constructor to be used with reflection loading. */
   public OpenTelemetryTraceComponentImpl() {
-    this.clock = MillisClock.getInstance();
+    clock = MillisClock.getInstance();
     RandomHandler randomHandler = new ThreadLocalRandomHandler();
     StartEndHandler startEndHandler = new OpenTelemetryStartEndHandler();
     tracer = new TracerImpl(randomHandler, startEndHandler, clock, traceConfig);

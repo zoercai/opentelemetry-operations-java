@@ -1,28 +1,25 @@
 import io.opencensus.implcore.trace.RecordEventsSpanImpl;
 import io.opencensus.trace.Span;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SpanCache {
-  private static SpanCache spanCache;
-  private Map<Span, io.opentelemetry.trace.Span> ocToOt = new HashMap<>();
-  private Map<io.opentelemetry.trace.Span, Span> otToOc = new HashMap<>();
+  private static final SpanCache SPAN_CACHE = new SpanCache();
+  private Map<Span, io.opentelemetry.trace.Span> ocToOt = new ConcurrentHashMap<>();
+  private Map<io.opentelemetry.trace.Span, Span> otToOc = new ConcurrentHashMap<>();
 
   private SpanCache() {}
 
   public static SpanCache getInstance() {
-    if (spanCache == null) {
-      spanCache = new SpanCache();
-    }
-    return spanCache;
+    return SPAN_CACHE;
   }
 
   io.opentelemetry.trace.Span toOtelSpan(Span ocSpan) {
     io.opentelemetry.trace.Span otSpan = ocToOt.get(ocSpan);
     if (otSpan == null) {
       otSpan = SpanConverter.toOtelSpan(ocSpan);
-      otToOc.put(otSpan, ocSpan);
-      ocToOt.put(ocSpan, otSpan);
+      otToOc.putIfAbsent(otSpan, ocSpan);
+      ocToOt.putIfAbsent(ocSpan, otSpan);
     }
     return otSpan;
   }
@@ -31,15 +28,17 @@ public class SpanCache {
     Span span = otToOc.get(otSpan);
     if (span == null) {
       span = SpanConverter.fromOtelSpan(otSpan);
-      ocToOt.put(span, otSpan);
-      otToOc.put(otSpan, span);
+      ocToOt.putIfAbsent(span, otSpan);
+      otToOc.putIfAbsent(otSpan, span);
     }
     return span;
   }
 
   void removeFromCache(RecordEventsSpanImpl ocSpan) {
     io.opentelemetry.trace.Span otSpan = ocToOt.get(ocSpan);
-    ocToOt.remove(ocSpan);
-    otToOc.remove(otSpan);
+    if (otSpan != null) {
+      ocToOt.remove(ocSpan);
+      otToOc.remove(otSpan);
+    }
   }
 }
