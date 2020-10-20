@@ -5,7 +5,7 @@ subprojects {
     apply plugin: 'signing'
 
     group = "com.google.cloud.opentelemetry"
-    version = "0.9.1-SNAPSHOT" // CURRENT_VERSION
+    version = "0.10.0-SNAPSHOT" // CURRENT_VERSION
 
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
@@ -28,7 +28,7 @@ subprojects {
         openCensusVersion = '0.27.1'
         junitVersion = '4.13'
         mockitoVersion = '3.5.10'
-        opentelemetryOperationsVersion = "0.7.1"  // CURRENT_RELEASE_VERSION
+        opentelemetryOperationsVersion = "0.9.1"  // CURRENT_RELEASE_VERSION
 
         libraries = [
                 auto_service_annotations     : "com.google.auto.service:auto-service-annotations:${autoServiceVersion}",
@@ -84,9 +84,6 @@ subprojects {
     }
 
     uploadArchives {
-        onlyIf {
-            name in ['exporter-trace', 'exporter-metrics', 'opencensus-migration']
-        }
         repositories {
             mavenDeployer {
                 beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
