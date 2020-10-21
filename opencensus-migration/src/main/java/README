@@ -1,0 +1,9 @@
+WIP
+
+Notes to add:
+
+* Cannot map OpenCensus links added after the OpenCensus span is created to the OpenTelemetry span,
+as links added after the span is started are not supported by OpenTelemetry. Links that exist before
+the span is started will be mapped.
+
+* 10 minutes timeout, and maximum of 10000 entries in the span cache.
