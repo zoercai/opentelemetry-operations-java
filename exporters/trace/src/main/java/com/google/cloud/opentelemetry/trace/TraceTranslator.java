@@ -143,7 +143,7 @@ class TraceTranslator {
     return attributesBuilder;
   }
 
-  private static <T> AttributeValue toAttributeValueProto(AttributeKey<?> key, Object value) {
+  private static <T> AttributeValue toAttributeValueProto(AttributeKey<T> key, T value) {
     AttributeValue.Builder builder = AttributeValue.newBuilder();
     switch (key.getType()) {
       case STRING:
