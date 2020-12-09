@@ -186,7 +186,10 @@ class TraceTranslator {
 
   @VisibleForTesting
   static Status toStatusProto(SpanData.Status status) {
-    Status.Builder statusBuilder = Status.newBuilder().setCode(status.getStatusCode().value());
+    Status.Builder statusBuilder = Status.newBuilder();
+    if (status.isOk()) {
+      statusBuilder.setCode(0);
+    }
     if (status.getDescription() != null) {
       statusBuilder.setMessage(status.getDescription());
     }
