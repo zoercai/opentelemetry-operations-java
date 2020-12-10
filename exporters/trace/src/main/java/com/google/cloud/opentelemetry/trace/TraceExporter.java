@@ -11,9 +11,15 @@ import com.google.cloud.trace.v2.stub.TraceServiceStub;
 import com.google.devtools.cloudtrace.v2.AttributeValue;
 import com.google.devtools.cloudtrace.v2.ProjectName;
 import com.google.devtools.cloudtrace.v2.Span;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 import io.opentelemetry.sdk.common.CompletableResultCode;
+import io.opentelemetry.sdk.trace.TracerSdkProvider;
+import io.opentelemetry.sdk.trace.config.TraceConfig;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -22,6 +28,16 @@ import java.util.List;
 import java.util.Map;
 
 public class TraceExporter implements SpanExporter {
+
+  private static final Tracer EXPORTER_TRACER =
+      OpenTelemetry.builder()
+          .setTracerProvider(
+              TracerSdkProvider.builder()
+                  .setTraceConfig(
+                      TraceConfig.getDefault().toBuilder().setSampler(Sampler.alwaysOff()).build())
+                  .build())
+          .build()
+          .getTracer("CloudTraceExporter");
 
   private final CloudTraceClient cloudTraceClient;
   private final ProjectName projectName;
@@ -98,12 +114,21 @@ public class TraceExporter implements SpanExporter {
 
   @Override
   public CompletableResultCode export(Collection<SpanData> spanDataList) {
-    List<Span> spans = new ArrayList<>(spanDataList.size());
-    for (SpanData spanData : spanDataList) {
-      spans.add(TraceTranslator.generateSpan(spanData, projectId, fixedAttributes));
+    io.opentelemetry.api.trace.Span notSampledSpan =
+        EXPORTER_TRACER
+            .spanBuilder(
+                "Span that is not sampled, "
+                    + "for preventing infinite loop created by cloud trace libraries creating more spans.")
+            .startSpan();
+    try (Scope scope = notSampledSpan.makeCurrent()) {
+      List<Span> spans = new ArrayList<>(spanDataList.size());
+      for (SpanData spanData : spanDataList) {
+        spans.add(TraceTranslator.generateSpan(spanData, projectId, fixedAttributes));
+      }
+      cloudTraceClient.batchWriteSpans(projectName, spans);
+    } finally {
+      notSampledSpan.end();
     }
-
-    cloudTraceClient.batchWriteSpans(projectName, spans);
     return CompletableResultCode.ofSuccess();
   }
 
